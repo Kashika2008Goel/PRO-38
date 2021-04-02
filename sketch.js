@@ -1,185 +1,244 @@
-var p1,p2,asteroid1,asteroid2,asteroid3;
-var blast,blastImage,space,spaceImage;
-var spaceShip,spaceShipImage, laserImage;
-var shoot = 0;
+var trex, trex_running, trex_collided;
+
+var ground, invisibleGround, groundImage, cloud, cloudImages, obstacle, obstacleImages1, obstacleImages2, obstacleImages3, obstacleImages4, obstacleImages5, obstacleImages6;
+
+var GroupClouds, GroupObstacles;
+
+var gameOver, gameOverImage, restart, restartImage;
+
+var die, jump, check;
+
+var PLAY = 1;
+var END = 0;
+var gameState = PLAY;
+
 var score = 0;
-var laser,asteroidGroup,laserGroup;
-var explosionSound,laserSound,explasionImage;
-var instruction = 0;
-var play = 1;
-var end = 2;
-var gameState = instruction;
-var endline,canvas;
-function preload() {
-  spaceImage = loadImage("space.png");
-  spaceShipImage = loadImage("spaceship.png");
-  laserImage = loadImage("laser.png");
-  asteroid1 = loadImage("as1.png");
-  asteroid2 = loadImage("as2.png");
-  asteroid3 = loadImage("as3.png");
-  blastImage = loadImage("blast.png");
-  explasionImage = loadImage("blast.png");
-  explosionSound = loadSound("explosion.mp3");
-  laserSound = loadSound("laser sound.mp3");
+
+var sec = 0;
+
+var min;
+var remainsec;
+
+localStorage["HighestScore"]=0;
+
+function preload(){
+  trex_running = loadAnimation("trex1.png","trex2.png","trex3.png");
+  
+  trex_collided = loadImage("trex_collided.png");
+  
+  groundImage = loadImage("ground2.png")
+  
+  cloudImages = loadImage("cloud.png");
+  
+  obstacleImages1 = loadImage("obstacle1.png");
+  
+  obstacleImages2 = loadImage("obstacle2.png");
+  
+  obstacleImages3 = loadImage("obstacle3.png");
+  
+  obstacleImages4 = loadImage("obstacle4.png");
+  
+  obstacleImages5 = loadImage("obstacle5.png");
+
+  obstacleImages6 = loadImage("obstacle6.png");
+
+  gameOverImage = loadImage("gameOver.png");
+  
+  restartImage = loadImage("restart.png");
+  
+  die = loadSound("die.mp3");
+  
+  jump = loadSound("jump.mp3");
+  
+  check = loadSound("checkPoint.mp3");
 }
 
-function setup() {  
-  canvas = createCanvas(1000,700);
-  space = createSprite(250,350,30,20);
-  space.addImage(spaceImage);
-  space.velocityY = (5 + score/10);
-
-  spaceShip = createSprite(250,600);
-  spaceShip.addImage(spaceShipImage);
-  spaceShip.scale = 0.6;
+function setup() {
+  createCanvas(700, 800);
   
-  p1 = createSprite(250,600);
-  //p1.debug = true;
-  p1.setCollider("rectangle",70,-27,5,265,156);
-  p1.visible = false;
-  p2 = createSprite(250,600); 
-  p2.setCollider("rectangle",-70,-27,5,265,24);
-  //p2.debug = true;
-  p2.visible = false;
+  trex = createSprite(120,180,20,50);
+  trex.addAnimation("running", trex_running);
+  trex.addAnimation("collided", trex_collided);
+  trex.scale = 0.5;
   
-  asteroidGroup = new Group;
-  laserGroup = new Group;
+  ground = createSprite(200,180,200,20);
+  ground.addImage("ground",groundImage);
+  ground.x = ground.width /2;
+  ground.velocityX = -2;
   
-  endline = createSprite(250,700,500,5);
-  endline.visible = false;
+  invisibleGround = createSprite(200,190,400,10);
+  invisibleGround.visible = false;
+  
+  gameOver = createSprite(280,80,20,20);
+  gameOver.addImage(gameOverImage);
+  gameOver.scale = 0.6;
+  gameOver.visible = false;
+  
+  restart = createSprite(260,130,20,20);
+  restart.addImage(restartImage);
+  restart.scale = 0.5;
+  restart.visible = false;
+  
+  GroupClouds = new Group();
+  GroupObstacles = new Group();
 }
 
 function draw() {
-  background(0);
-
-  if(gameState === play) {
-    // console.log(frameCount);
+  background("white");
+  
+  if(gameState === PLAY){
     
-    if(space.y > 800) {
-      space.y = 300;
-    }
+    ground.velocityX = -(2+ Math.round(score/100));
     
-    shoot = shoot - 1;
-
-    if(keyDown("space") && shoot < 460) {
-      laser = createSprite(spaceShip.x,spaceShip.y - 130);
-      laser.addImage(laserImage);
-      laser.velocityY = -8; 
-      laser.scale = 0.7;
-      laserGroup.add(laser);
-      laserSound.play();
-      //console.log(laser.x);
-      shoot = laser.y;
-    }  
-
-    if(keyDown("right") && spaceShip.x < 1400) {
-      spaceShip.x = spaceShip.x + 10;
-      p1.x = p1.x + 10;
-      p2.x = p2.x + 10;
-    }
-
-    if(keyDown("left") && spaceShip.x > 50) {
-      spaceShip.x = spaceShip.x - 10;
-      p1.x = p1.x - 10;
-      p2.x = p2.x - 10;
-    }
-    
-    if(asteroidGroup.isTouching(p2) || asteroidGroup.isTouching(p1)) {
-      asteroidGroup.destroyEach();
-      var blast = createSprite(spaceShip.x,spaceShip.y - 50);
-      blast.addImage(blastImage);
-      blast.lifetime = 25;
-      explosionSound.play();
-      spaceShip.destroy();
-      gameState = end;
-    }
-    
-    if(asteroidGroup.isTouching(laserGroup)) {
-      asteroidGroup.destroyEach();
-      laserGroup.destroyEach();
-      explosionSound.play();
-      score = score + 1;
-    }
-
-    asteroids();
-    drawSprites();
-    
-    stroke("white");
-    fill("white");
-    textSize(30);
-    text("score : " + score,210,60)
-    
-    if(asteroidGroup.isTouching(endline)) {
-      asteroidGroup.destroyEach();
-      gameState = end;
-    }
-    
-  }
-  else if(gameState === end) {
-    space.velocityY = 0;
-    stroke("yellow");
-    fill("white");
-    textSize(40);
-    text("GAME OVER!",canvas.width/2-400,canvas.height/2);
-    text("The asteroids destroyed the planet",canvas.width/2-400,canvas.height/2+100);
-    text("Your final score:"+score,canvas.width/2-400,canvas.height/2+200);
-
-    
+  if(keyDown("space") && trex.y > 161) {
+    trex.velocityY = -12;
+    jump.play();
   }
 
+  // console.log(trex.y);
+  
+  trex.velocityY = trex.velocityY + 0.8;
 
-  if(gameState === instruction) {
-    stroke("white");
-    fill("white");
-    textFont("trebuchetMS")
-    textSize(50);
-    text("------SPACE SHOOTERS------",canvas.width/2-300,canvas.height/2-300);
-    text("ENJOY THE GAME!",canvas.width/2-300,canvas.height/2+100);
-    stroke("yellow");
-    fill("yellow");
-    textSize(35);
-    textFont("Apple Chancery");
-    text("year 2500 .....",canvas.width/2-300,canvas.height/2-250);
-    text(" Some asteroids are coming towords Earth.",canvas.width/2-300, canvas.height/2 - 210);
-    text("  You are a space fighter.",canvas.width/2-300,canvas.height/2-170);
-    text("  Help the people and Earth !",canvas.width/2-300,canvas.height/2-130);
-    text("  press 'space' to shoot.",canvas.width/2-300,canvas.height/2-90);
-    text("  use right and left arrows to move.",canvas.width/2-300,canvas.height/2-50);
-    text("  press 's' to start game.",canvas.width/2,canvas.height/2-10);
+  //camera
+  camera.position.x=trex.x+200;
+  
+  if (ground.x < 0){
+    ground.x = ground.width/2;
+  }
+  
+  SpawnClouds();
+  spawnObstacles();
     
-    if(keyDown("s")) {
-      gameState = play;
-    } 
-    if(keyDown("r")) {
-      gameState = instruction;
+    score = score + Math.round(getFrameRate()/60);
+
+    sec++;
+
+    min = Math.floor(sec/60);
+    remainsec = sec - min * 60;
+
+    text("Time: " + min + " min " + remainsec + " sec",400,50);
+    
+    if(score > 0 && score % 100 === 0){
+      check.play();
     }
+    
+    if(GroupObstacles.isTouching(trex)){
+         die.play();
+         gameState = END;
+       }
+    
+  } else if(gameState === END){
+    GroupObstacles.setVelocityXEach(0);
+    GroupClouds.setVelocityXEach(0);
+    trex.changeAnimation("collided", trex_collided);
+    ground.velocityX=0;
+    trex.velocityY=0;
+    GroupObstacles.setLifetimeEach(-1);
+    GroupClouds.setLifetimeEach(-1);
+
+    min = Math.floor(sec/60);
+    remainsec = sec - min * 60;
+
+    
+    text("Time: " + min + " min " + remainsec + " sec",400,50);
+
+    gameOver.visible = true;
+    restart.visible = true;
+  } 
+  
+  trex.collide(invisibleGround);
+  
+    if(localStorage["HighestScore"] < score){
+    localStorage["HighestScore"]=score;
+  }
+
+  // var d = new Date();
+  // var min = d.getMinutes();
+  
+  text("Score: " +score, 300,50);
+  text("High Score: "+localStorage["HighestScore"],200,50);
+  
+  
+  if(mousePressedOver(restart)){
+    reset();
+  }
+  
+  drawSprites();
+  
+}
+
+function reset() {
+   
+  gameState = PLAY;
+  gameOver.visible = false;
+  restart.visible = false;
+  
+  GroupObstacles.setLifetimeEach(0);    
+  GroupClouds.setLifetimeEach(0);  
+  
+  trex.changeAnimation("running", trex_running);
+  
+  // console.log(localStorage["HighestScore"]);
+  
+  score = 0;
+  sec = 0; 
+}
+
+function SpawnClouds(){
+  if (frameCount % 60 === 0) {
+    cloud = createSprite(600,50,40,10);
+    cloud.y = random(50,160);
+    cloud.addImage("cloud",cloudImages);
+    cloud.scale = 0.5;
+    cloud.velocityX = -(3 + Math.round(score/100));
+    
+     //assign lifetime to the variable
+    cloud.lifetime = 200;
+    
+    //adjust the depth
+    cloud.depth = trex.depth;
+    trex.depth = trex.depth + 1;
+    
+    GroupClouds.add(cloud);
   }
 }
   
-
-function asteroids() {
-  if(frameCount % 110 === 0) {
-  
-    var asteroid = createSprite(Math.round(random(50,1350)),-20);
-    asteroid.velocityY = (6 + score/10);
-    asteroid.lifetime = 200;
-    asteroid.scale = random(0.4,0.5);
-    //asteroid.debug = true;
-
-    var rand = Math.round(random(1,3));
-    switch(rand) {
-      case 1: asteroid.addImage(asteroid1);
-              asteroid.setCollider("circle",-80,10,160);
-              break;
-      case 2: asteroid.addImage(asteroid2);
-              asteroid.setCollider("circle",50,0,150);
-              break;
-      case 3: asteroid.addImage(asteroid3);
-              asteroid.setCollider("circle",0,0,170)
-      default: break;
+function spawnObstacles() {
+  if(frameCount % 60 === 0) {
+    obstacle = createSprite(600,165,10,40);
+    obstacle.velocityX = -(6 + Math.round(score/100));
+    
+    //generate random obstacles
+    var rand = Math.round(random(1,6));
+    
+    switch(rand){
+      case 1: obstacle.addImage("Sprites/obstacle1", obstacleImages1);
+        break;
+        
+      case 2: obstacle.addImage("Sprites/obstacle2",obstacleImages2);
+        break;
+        
+      case 3: obstacle.addImage("Sprites/obstacle3",obstacleImages3);
+        break;
+        
+      case 4: obstacle.addImage("Sprites/obstacle4",obstacleImages4);
+        break;
+        
+      case 5: obstacle.addImage("Sprites/obstacle5",obstacleImages5);
+        break;
+        
+      case 6: obstacle.addImage("Sprites/obstacle6",obstacleImages6);
+        break;
+        
+      default: break; 
     }
     
-    //console.log(asteroid.x);
-    asteroidGroup.add(asteroid);
+    //assign scale and lifetime to the obstacle           
+    obstacle.scale = 0.5;
+    obstacle.lifetime = 100;
+    
+    GroupObstacles.add(obstacle);
   }
 }
+
+  
